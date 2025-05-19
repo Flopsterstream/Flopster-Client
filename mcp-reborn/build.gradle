@@ -1,0 +1,170 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        maven { url = 'https://maven.minecraftforge.net' }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:6+'
+        classpath "gradle.plugin.org.jetbrains.gradle.plugin.idea-ext:gradle-idea-ext:1.1.3"
+    }
+}
+
+import net.minecraftforge.gradle.common.util.Utils
+import net.minecraftforge.gradle.common.util.VersionJson
+import org.jetbrains.gradle.ext.*
+
+apply plugin: 'eclipse'
+apply plugin: 'net.minecraftforge.gradle.patcher'
+apply plugin: "org.jetbrains.gradle.plugin.idea-ext"
+
+println(' Java: ' + System.getProperty('java.version') +
+        ' JVM: ' + System.getProperty('java.vm.version') + '(' + System.getProperty('java.vendor') + ')' +
+        ' Arch: ' + System.getProperty('os.arch'))
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+configurations {
+    shade
+    compile.extendsFrom shade
+}
+
+group = 'me.yourname'
+version = '1.0.0'
+
+ext {
+    minecraft_version = '1.21.5'
+    mcp_version = '20250325.155543'
+    mappings_channel = 'official'
+    mappings_version = '1.21.5'
+    spi_version = '7.0.0'
+}
+
+repositories {
+   mavenCentral()
+   maven { url = "https://repo.spongepowered.org/maven" } // ← Mixin source
+}
+dependencies {
+
+   implementation 'org.ow2.asm:asm-tree:9.6'
+   implementation 'org.ow2.asm:asm:9.6'
+   implementation 'net.minecraftforge:forgespi:' + spi_version
+   implementation 'com.google.code.gson:gson:2.11.0'
+   implementation 'com.google.guava:guava:33.3.1-jre'
+   implementation 'org.spongepowered:mixin:0.8.5'
+   implementation 'cpw.mods:modlauncher:9.1.2'
+   implementation 'cpw.mods:securejarhandler:2.1.5'
+   // ✅ Add these lines for Mixin support
+   annotationProcessor 'org.spongepowered:mixin:0.8.5'
+   annotationProcessor 'com.google.code.gson:gson:2.11.0'
+   annotationProcessor 'com.google.guava:guava:33.3.1-jre'
+   annotationProcessor 'org.ow2.asm:asm-tree:9.6'
+   annotationProcessor 'org.ow2.asm:asm:9.6'
+   compileOnly 'com.google.code.gson:gson:2.11.0'
+}
+
+// ✅ (Optional but recommended for IDEs like IntelliJ)
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += [
+        "-Xlint:unchecked",
+        "-Xlint:deprecation",
+        "-parameters"
+    ]
+}
+
+project(':mcp') {
+    apply plugin: 'net.minecraftforge.gradle.mcp'
+    mcp {
+        config = minecraft_version + '-' + mcp_version
+        pipeline = 'joined'
+    }
+}
+
+evaluationDependsOn(':mcp')
+
+patcher {
+    parent = project(':mcp')
+    patchedSrc = file('src/main/java')
+    mappings channel: mappings_channel, version: mappings_version
+    mcVersion = minecraft_version
+}
+
+jar {
+    configurations.shade.each { dep ->
+        from(project.zipTree(dep)) {
+            exclude 'META-INF', 'META-INF/**'
+        }
+    }
+}
+
+var assetsFolder = file('run/assets')
+
+tasks.register('runclient', JavaExec) {
+    group = "MCP"
+    description = "Runs the client"
+
+    mainClass.set("cpw.mods.modlauncher.Launcher")
+    classpath = sourceSets.main.runtimeClasspath
+
+    if (System.getProperty("os.name").toLowerCase().contains("mac")) {
+        jvmArgs '-XstartOnFirstThread'
+    }
+
+    var runFolder = file('run')
+
+    workingDir = runFolder
+
+    args(
+        "--launchTarget", "fmlclient",
+        "--classpath", classpath.asPath,
+        "--",
+        "--version", minecraft_version,
+        "--gameDir", ".",
+        "--assetsDir", runFolder.toPath().relativize(assetsFolder.toPath()).toString(),
+        "--assetIndex", minecraft_version,
+        "--accessToken", "0"
+    )
+}
+
+tasks.register('setup') {
+    group = "MCP"
+    description = "Setups the dev workspace"
+    dependsOn ':extractMapped'
+    mkdir assetsFolder
+    copy {
+        from downloadAssets.output.path
+        into assetsFolder
+    }
+}
+
+tasks.register('copyAssets') {
+    group = "MCP"
+    description = "Download and place the assets into the run folder"
+    dependsOn ':downloadAssets'
+    mkdir 'run/assets'
+    copy {
+        from downloadAssets.output.path
+        into assetsFolder
+    }
+}
+
+tasks.register('runserver', JavaExec) {
+    mkdir 'runserver'
+    group = "MCP"
+    description = "Runs the server"
+    standardInput = System.in
+    classpath sourceSets.main.runtimeClasspath
+    main 'net.minecraft.server.Main'
+    workingDir 'runserver'
+}
+
+idea.project.settings {
+    runConfigurations {
+        "Minecraft"(Application) {
+            mainClass = 'mcp.client.Start'
+            workingDirectory = "$projectDir/run"
+            moduleName = idea.module.name + '.main'
+        }
+    }
+}
