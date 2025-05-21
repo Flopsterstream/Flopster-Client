@@ -1,21 +1,30 @@
-.gradle
+# Gradle cache
+.gradle/
+
+# Build output (okay to keep ignored)
 build/
 
-# Source code
-src/*
+# Ignore run/ unless needed (remove if you want it pushed)
+# run/
 
-#Run files
-runclient
+# Keep source code!
+# Remove the line below — it hides all your code!
+# src/*
 
-# Ignore Gradle GUI config
+# Instead, ignore compiled outputs in src if needed:
+# src/**/*.class
+
+# Ignore Eclipse/IDEA files
+.idea/
+*.iml
+
+# Gradle GUI config
 gradle-app.setting
 
-# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+# Don't ignore the wrapper jar
 !gradle-wrapper.jar
 
-#IDE files
-.idea
-*.iml
-run/
-
+# Optional: ignore Eclipse and IntelliJ-specific stuff
+*.log
+*.swp
 out/

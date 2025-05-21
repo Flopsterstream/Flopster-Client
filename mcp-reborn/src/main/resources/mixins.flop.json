@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "me.flopsterstream.flop.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ExampleMixin",
+	"FullbrightMixin",
+	"UnitDoubleMixin"
+
+  ],
+  "client": [
+    "ClientOnlyMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
