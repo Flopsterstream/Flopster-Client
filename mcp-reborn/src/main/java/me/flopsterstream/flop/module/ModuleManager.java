@@ -7,7 +7,7 @@ import java.util.stream.Collectors;
 import me.flopsterstream.flop.module.combat.*;
 import me.flopsterstream.flop.module.gui.*;
 import me.flopsterstream.flop.module.modules.movement.*;
-import me.flopsterstream.flop.module.modules.render.*;
+
 import me.flopsterstream.flop.module.player.*;
 
 public class ModuleManager {
@@ -17,7 +17,7 @@ public class ModuleManager {
 	public ModuleManager() {
 		modules = new ArrayList<>();
 		//Combat
-		addMod(new AutoTotem());
+
 		
 		
 		//Movement
@@ -33,7 +33,7 @@ public class ModuleManager {
 		
 		
 		//Render
-		addMod(new Fullbright());
+
 		
 		
 		//Misc
